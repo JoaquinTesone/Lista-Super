@@ -4,6 +4,7 @@ import Home from './screens/Home.jsx'
 import Categoria from './screens/Categoria.jsx'
 import ListaCompras from './screens/ListaCompras.jsx'
 import Administracion from './screens/Administracion.jsx'
+import BottomNav from './components/BottomNav.jsx'
 
 export default function App() {
   const [productos, setProductos] = useState([])
@@ -21,6 +22,10 @@ export default function App() {
 
   useEffect(() => { cargar() }, [cargar])
 
+  // Mantiene el array siempre ordenado por nombre, sin importar si un
+  // producto se agregó, se editó o vino de la carga inicial.
+  const ordenar = (lista) => [...lista].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))
+
   // Marca/desmarca "necesito comprar" desde la pantalla de Categoría o el buscador
   const toggleNecesito = async (id, valor) => {
     setProductos(prev => prev.map(p => p.id === id ? { ...p, necesito_comprar: valor } : p))
@@ -33,19 +38,19 @@ export default function App() {
     await supabase.from('productos').update({ en_carrito: valor }).eq('id', id)
   }
 
-  // Alta rápida desde el buscador o desde Administración
-  const agregarProducto = async (nombre, categoria) => {
+  // Alta rápida desde el buscador (sin subcategoría) o completa desde Administración
+  const agregarProducto = async (nombre, categoria, subcategoria = null) => {
     const { data, error } = await supabase
       .from('productos')
-      .insert({ nombre, categoria, necesito_comprar: true })
+      .insert({ nombre, categoria, subcategoria, necesito_comprar: true })
       .select()
       .single()
-    if (!error) setProductos(prev => [...prev, data])
+    if (!error) setProductos(prev => ordenar([...prev, data]))
     return data
   }
 
   const editarProducto = async (id, campos) => {
-    setProductos(prev => prev.map(p => p.id === id ? { ...p, ...campos } : p))
+    setProductos(prev => ordenar(prev.map(p => p.id === id ? { ...p, ...campos } : p)))
     await supabase.from('productos').update(campos).eq('id', id)
   }
 
@@ -68,49 +73,61 @@ export default function App() {
 
   if (loading) return null
 
+  const irHome = () => setScreen({ name: 'home' })
+  const irLista = () => setScreen({ name: 'lista' })
+  const irAdmin = () => setScreen({ name: 'admin' })
+
+  let contenido
+  let tabActivo
+
   if (screen.name === 'categoria') {
-    return (
+    contenido = (
       <Categoria
         categoria={screen.categoria}
         productos={productos.filter(p => p.categoria === screen.categoria)}
         onToggle={toggleNecesito}
-        onVolver={() => setScreen({ name: 'home' })}
+        onVolver={irHome}
         onAgregar={agregarProducto}
       />
     )
-  }
-
-  if (screen.name === 'lista') {
-    return (
+    tabActivo = 'home'
+  } else if (screen.name === 'lista') {
+    contenido = (
       <ListaCompras
         productos={productos.filter(p => p.necesito_comprar)}
         onToggleCarrito={toggleCarrito}
         onFinalizar={finalizarCompra}
-        onVolver={() => setScreen({ name: 'home' })}
+        onVolver={irHome}
       />
     )
-  }
-
-  if (screen.name === 'admin') {
-    return (
+    tabActivo = 'lista'
+  } else if (screen.name === 'admin') {
+    contenido = (
       <Administracion
         productos={productos}
         onEditar={editarProducto}
         onEliminar={eliminarProducto}
         onAgregar={agregarProducto}
-        onVolver={() => setScreen({ name: 'home' })}
+        onVolver={irHome}
       />
     )
+    tabActivo = 'admin'
+  } else {
+    contenido = (
+      <Home
+        productos={productos}
+        onAbrirCategoria={(categoria) => setScreen({ name: 'categoria', categoria })}
+        onToggle={toggleNecesito}
+        onAgregar={agregarProducto}
+      />
+    )
+    tabActivo = 'home'
   }
 
   return (
-    <Home
-      productos={productos}
-      onAbrirCategoria={(categoria) => setScreen({ name: 'categoria', categoria })}
-      onAbrirLista={() => setScreen({ name: 'lista' })}
-      onAbrirAdmin={() => setScreen({ name: 'admin' })}
-      onToggle={toggleNecesito}
-      onAgregar={agregarProducto}
-    />
+    <>
+      {contenido}
+      <BottomNav activo={tabActivo} onIrHome={irHome} onIrLista={irLista} onIrAdmin={irAdmin} />
+    </>
   )
 }

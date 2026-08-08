@@ -1,4 +1,8 @@
+import { agruparPorSubcategoria } from '../utils/agrupar.js'
+
 export default function Categoria({ categoria, productos, onToggle, onVolver }) {
+  const grupos = agruparPorSubcategoria(productos, categoria)
+
   return (
     <div className="screen">
       <div className="top-bar">
@@ -9,20 +13,23 @@ export default function Categoria({ categoria, productos, onToggle, onVolver }) 
       {productos.length === 0 ? (
         <div className="empty-state">Todavía no hay productos en esta categoría.</div>
       ) : (
-        <div>
-          {productos.map(p => (
-            <div key={p.id} className="product-row">
-              <button
-                className={`checkbox ${p.necesito_comprar ? 'checked' : ''}`}
-                onClick={() => onToggle(p.id, !p.necesito_comprar)}
-                aria-label={p.necesito_comprar ? 'Marcado' : 'Sin marcar'}
-              >
-                {p.necesito_comprar ? '✓' : ''}
-              </button>
-              <span className="product-name">{p.nombre}</span>
-            </div>
-          ))}
-        </div>
+        grupos.map(({ subcategoria, items }) => (
+          <div key={subcategoria}>
+            {grupos.length > 1 && <div className="subsection-label">{subcategoria}</div>}
+            {items.map(p => (
+              <div key={p.id} className="product-row">
+                <button
+                  className={`checkbox ${p.necesito_comprar ? 'checked' : ''}`}
+                  onClick={() => onToggle(p.id, !p.necesito_comprar)}
+                  aria-label={p.necesito_comprar ? 'Marcado' : 'Sin marcar'}
+                >
+                  {p.necesito_comprar ? '✓' : ''}
+                </button>
+                <span className="product-name">{p.nombre}</span>
+              </div>
+            ))}
+          </div>
+        ))
       )}
     </div>
   )

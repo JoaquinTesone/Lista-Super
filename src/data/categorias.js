@@ -3,9 +3,10 @@ export const CATEGORIAS = [
   'Frutas y verduras',
   'Lácteos y huevos',
   'Carnes y fiambres',
+  'Congelados',
+  'Bebidas',
   'Limpieza',
   'Baño e higiene personal',
-  'Cocina (descartables)',
-  'Farmacia / botiquín',
-  'Otros / hogar'
+  'Cocina y hogar',
+  'Farmacia / botiquín'
 ]

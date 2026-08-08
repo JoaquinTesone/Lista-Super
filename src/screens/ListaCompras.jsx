@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { agruparPorSubcategoria } from '../utils/agrupar.js'
 
 export default function ListaCompras({ productos, onToggleCarrito, onFinalizar, onVolver }) {
   const [modoCompra, setModoCompra] = useState(false)
@@ -10,7 +11,10 @@ export default function ListaCompras({ productos, onToggleCarrito, onFinalizar, 
       if (!mapa[p.categoria]) mapa[p.categoria] = []
       mapa[p.categoria].push(p)
     }
-    return Object.keys(mapa).sort().map(categoria => ({ categoria, items: mapa[categoria] }))
+    return Object.keys(mapa).sort().map(categoria => ({
+      categoria,
+      grupos: agruparPorSubcategoria(mapa[categoria], categoria)
+    }))
   }, [productos])
 
   const handleFinalizar = () => {
@@ -35,23 +39,28 @@ export default function ListaCompras({ productos, onToggleCarrito, onFinalizar, 
             <button className={modoCompra ? 'active' : ''} onClick={() => setModoCompra(true)}>En el súper</button>
           </div>
 
-          {agrupados.map(({ categoria, items }) => (
+          {agrupados.map(({ categoria, grupos }) => (
             <div key={categoria}>
               <div className="section-label">{categoria}</div>
-              {items.map(p => (
-                <div key={p.id} className="product-row">
-                  {modoCompra ? (
-                    <button
-                      className={`checkbox ${p.en_carrito ? 'checked' : ''}`}
-                      onClick={() => onToggleCarrito(p.id, !p.en_carrito)}
-                      aria-label={p.en_carrito ? 'En el carrito' : 'Falta poner en el carrito'}
-                    >
-                      {p.en_carrito ? '✓' : ''}
-                    </button>
-                  ) : (
-                    <span className="checkbox checked">✓</span>
-                  )}
-                  <span className={`product-name ${modoCompra && p.en_carrito ? 'done' : ''}`}>{p.nombre}</span>
+              {grupos.map(({ subcategoria, items }) => (
+                <div key={subcategoria}>
+                  {grupos.length > 1 && <div className="subsection-label">{subcategoria}</div>}
+                  {items.map(p => (
+                    <div key={p.id} className="product-row">
+                      {modoCompra ? (
+                        <button
+                          className={`checkbox ${p.en_carrito ? 'checked' : ''}`}
+                          onClick={() => onToggleCarrito(p.id, !p.en_carrito)}
+                          aria-label={p.en_carrito ? 'En el carrito' : 'Falta poner en el carrito'}
+                        >
+                          {p.en_carrito ? '✓' : ''}
+                        </button>
+                      ) : (
+                        <span className="checkbox checked">✓</span>
+                      )}
+                      <span className={`product-name ${modoCompra && p.en_carrito ? 'done' : ''}`}>{p.nombre}</span>
+                    </div>
+                  ))}
                 </div>
               ))}
             </div>

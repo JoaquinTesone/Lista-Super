@@ -1,8 +1,10 @@
 import { useMemo, useState } from 'react'
 import { CATEGORIAS } from '../data/categorias.js'
+import { agruparPorSubcategoria } from '../utils/agrupar.js'
 
-export default function Home({ productos, onAbrirCategoria, onAbrirLista, onAbrirAdmin, onToggle, onAgregar }) {
+export default function Home({ productos, onAbrirCategoria, onToggle, onAgregar }) {
   const [busqueda, setBusqueda] = useState('')
+  const [vista, setVista] = useState('comprimida') // 'comprimida' | 'completa'
 
   const categorias = useMemo(() => {
     const mapa = {}
@@ -10,6 +12,20 @@ export default function Home({ productos, onAbrirCategoria, onAbrirLista, onAbri
       mapa[p.categoria] = (mapa[p.categoria] || 0) + (p.necesito_comprar ? 1 : 0)
     }
     return Object.keys(mapa).sort().map(nombre => ({ nombre, marcados: mapa[nombre] }))
+  }, [productos])
+
+  // Mismos productos que arriba, pero agrupados por categoría y luego
+  // por subcategoría, para la vista de lista completa.
+  const agrupados = useMemo(() => {
+    const mapa = {}
+    for (const p of productos) {
+      if (!mapa[p.categoria]) mapa[p.categoria] = []
+      mapa[p.categoria].push(p)
+    }
+    return Object.keys(mapa).sort().map(categoria => ({
+      categoria,
+      grupos: agruparPorSubcategoria(mapa[categoria], categoria)
+    }))
   }, [productos])
 
   const resultados = useMemo(() => {
@@ -40,19 +56,46 @@ export default function Home({ productos, onAbrirCategoria, onAbrirLista, onAbri
         />
       ) : (
         <>
-          <div className="category-grid">
-            {categorias.map(c => (
-              <button key={c.nombre} className="category-card" onClick={() => onAbrirCategoria(c.nombre)}>
-                {c.nombre}
-                <span className="count">{c.marcados > 0 ? `${c.marcados} marcados` : 'sin marcar'}</span>
-              </button>
-            ))}
+          <div className="mode-toggle">
+            <button className={vista === 'comprimida' ? 'active' : ''} onClick={() => setVista('comprimida')}>Vista comprimida</button>
+            <button className={vista === 'completa' ? 'active' : ''} onClick={() => setVista('completa')}>Lista completa</button>
           </div>
 
-          <div className="nav-row">
-            <button className="nav-btn" onClick={onAbrirLista}>Lista de compras</button>
-            <button className="nav-btn" onClick={onAbrirAdmin}>Administración</button>
-          </div>
+          {vista === 'comprimida' ? (
+            <div className="category-grid">
+              {categorias.map(c => (
+                <button key={c.nombre} className="category-card" onClick={() => onAbrirCategoria(c.nombre)}>
+                  {c.nombre}
+                  <span className="count">{c.marcados > 0 ? `${c.marcados} marcados` : 'sin marcar'}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div>
+              {agrupados.map(({ categoria, grupos }) => (
+                <div key={categoria}>
+                  <div className="section-label">{categoria}</div>
+                  {grupos.map(({ subcategoria, items }) => (
+                    <div key={subcategoria}>
+                      {grupos.length > 1 && <div className="subsection-label">{subcategoria}</div>}
+                      {items.map(p => (
+                        <div key={p.id} className="product-row">
+                          <button
+                            className={`checkbox ${p.necesito_comprar ? 'checked' : ''}`}
+                            onClick={() => onToggle(p.id, !p.necesito_comprar)}
+                            aria-label={p.necesito_comprar ? 'Marcado' : 'Sin marcar'}
+                          >
+                            {p.necesito_comprar ? '✓' : ''}
+                          </button>
+                          <span className="product-name">{p.nombre}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ))}
+                </div>
+              ))}
+            </div>
+          )}
         </>
       )}
     </div>

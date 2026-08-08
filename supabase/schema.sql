@@ -4,6 +4,7 @@ create table productos (
   id uuid primary key default gen_random_uuid(),
   nombre text not null,
   categoria text not null,
+  subcategoria text,
   necesito_comprar boolean not null default false,
   en_carrito boolean not null default false,
   created_at timestamptz not null default now()
